@@ -1,19 +1,11 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { getMockFaculties } from "@/lib/mock-data"
 
-export default async function FacultiesPage() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
-
-  const { data: faculties } = await supabase.from("faculties").select("*").order("name")
+export default function FacultiesPage() {
+  const faculties = getMockFaculties()
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -31,7 +23,7 @@ export default async function FacultiesPage() {
 
       <main className="container px-4 py-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {faculties?.map((faculty) => (
+          {faculties.map((faculty) => (
             <Card key={faculty.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle>{faculty.name}</CardTitle>

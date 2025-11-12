@@ -1,11 +1,11 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
-import { ChevronLeft, Calendar, User, MessageSquare } from "lucide-react"
+import { ChevronLeft, Calendar, MessageSquare } from "lucide-react"
+import { getMockExamById, getMockProfessorById, getMockQuestions } from "@/lib/mock-data"
+import { redirect } from "next/navigation"
 
 export default async function ExamDetailPage({
   params,
@@ -13,28 +13,14 @@ export default async function ExamDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
-
-  const { data: exam } = await supabase
-    .from("past_exams")
-    .select("*, profiles(display_name), professors(*, subjects(*, departments(*, faculties(*))))")
-    .eq("id", id)
-    .single()
+  const exam = getMockExamById(id)
 
   if (!exam) {
     redirect("/home")
   }
 
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("*, profiles(display_name)")
-    .eq("past_exam_id", id)
-    .order("created_at", { ascending: false })
+  const professor = getMockProfessorById(exam.professor_id)
+  const questions = getMockQuestions(id)
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -65,18 +51,11 @@ export default async function ExamDetailPage({
                       </span>
                     )}
                     {exam.semester && <Badge variant="secondary">{exam.semester}</Badge>}
-                    <span className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      {exam.profiles?.display_name || "匿名"}
-                    </span>
+                    {exam.exam_type && <Badge variant="outline">{exam.exam_type}</Badge>}
                   </CardDescription>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <p>{exam.professors?.subjects?.departments?.faculties?.name}</p>
-                  <p>
-                    {exam.professors?.subjects?.departments?.name} / {exam.professors?.subjects?.name}
-                  </p>
-                  <p className="font-medium">{exam.professors?.name}</p>
+                  <p className="font-medium">{professor?.name} 教授</p>
                 </div>
               </div>
             </CardHeader>
@@ -94,7 +73,7 @@ export default async function ExamDetailPage({
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-5 w-5" />
-                    質問 ({questions?.length || 0})
+                    質問 ({questions.length})
                   </CardTitle>
                   <CardDescription>この過去問に関する質問</CardDescription>
                 </div>
@@ -110,13 +89,11 @@ export default async function ExamDetailPage({
                     <div key={question.id}>
                       {index > 0 && <Separator className="my-4" />}
                       <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <h4 className="font-semibold">{question.title}</h4>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {question.profiles?.display_name || "匿名"}
-                          </span>
-                        </div>
+                        <h4 className="font-semibold">{question.title}</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{question.content}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(question.created_at).toLocaleDateString("ja-JP")}
+                        </p>
                       </div>
                     </div>
                   ))}

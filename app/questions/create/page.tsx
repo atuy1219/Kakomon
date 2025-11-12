@@ -2,92 +2,52 @@
 
 import type React from "react"
 
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronLeft, MessageSquare, AlertCircle } from "lucide-react"
-
-type PastExam = {
-  id: string
-  title: string
-  content: string
-  year: number | null
-  semester: string | null
-  professors: {
-    name: string
-    subjects: {
-      name: string
-    }
-  }
-}
+import { ChevronLeft, MessageSquare } from "lucide-react"
+import { getMockExams, getMockExamById } from "@/lib/mock-data"
 
 export default function CreateQuestionPage() {
   const searchParams = useSearchParams()
   const professorId = searchParams.get("professor")
   const examId = searchParams.get("exam")
 
-  const [exams, setExams] = useState<PastExam[]>([])
+  const [exams, setExams] = useState<Array<{ id: string; title: string; content: string; year: number | null }>>([])
   const [selectedExam, setSelectedExam] = useState(examId || "")
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
-  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     if (professorId) {
-      loadExams(professorId)
+      const mockExams = getMockExams(professorId)
+      setExams(mockExams)
     }
   }, [professorId])
-
-  const loadExams = async (profId: string) => {
-    const { data } = await supabase
-      .from("past_exams")
-      .select("id, title, content, year, semester, professors(name, subjects(name))")
-      .eq("professor_id", profId)
-      .order("created_at", { ascending: false })
-
-    if (data) setExams(data as PastExam[])
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError(null)
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("ログインが必要です")
-
-      if (!selectedExam) throw new Error("過去問を選択してください")
-
-      const { error: insertError } = await supabase.from("questions").insert({
-        past_exam_id: selectedExam,
-        user_id: user.id,
-        title,
-        content,
-      })
-
-      if (insertError) throw insertError
-
-      router.push(`/exams/${selectedExam}`)
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "質問の投稿に失敗しました")
-    } finally {
-      setIsLoading(false)
-    }
+    setTimeout(() => {
+      alert("デモ版のため、実際の投稿は行われません。質問が投稿されました！")
+      if (selectedExam) {
+        router.push(`/exams/${selectedExam}`)
+      } else {
+        router.push("/home")
+      }
+    }, 500)
   }
+
+  const displayExam = selectedExam ? getMockExamById(selectedExam) : null
 
   if (!professorId && !examId) {
     return (
@@ -152,13 +112,11 @@ export default function CreateQuestionPage() {
 
               {selectedExam && (
                 <>
-                  {exams.find((e) => e.id === selectedExam) && (
+                  {displayExam && (
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-semibold mb-2">選択された過去問</h4>
-                      <p className="text-sm font-medium mb-1">{exams.find((e) => e.id === selectedExam)?.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-3">
-                        {exams.find((e) => e.id === selectedExam)?.content}
-                      </p>
+                      <p className="text-sm font-medium mb-1">{displayExam.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3">{displayExam.content}</p>
                     </div>
                   )}
 
@@ -184,13 +142,6 @@ export default function CreateQuestionPage() {
                       rows={8}
                     />
                   </div>
-
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "投稿中..." : "質問を投稿"}

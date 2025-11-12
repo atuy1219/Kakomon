@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,108 +12,50 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronLeft } from "lucide-react"
-
-type Faculty = { id: string; name: string }
-type Department = { id: string; name: string; faculty_id: string }
-type Subject = { id: string; name: string; department_id: string }
-type Professor = { id: string; name: string; subject_id: string }
+import { getMockFaculties, getMockDepartments, getMockSubjects, getMockProfessors } from "@/lib/mock-data"
 
 export default function SharePage() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [year, setYear] = useState("")
   const [semester, setSemester] = useState("")
+  const [examType, setExamType] = useState("")
   const [selectedFaculty, setSelectedFaculty] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("")
   const [selectedSubject, setSelectedSubject] = useState("")
   const [selectedProfessor, setSelectedProfessor] = useState("")
 
-  const [faculties, setFaculties] = useState<Faculty[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [professors, setProfessors] = useState<Professor[]>([])
-
-  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+
+  const faculties = getMockFaculties()
+  const departments = selectedFaculty ? getMockDepartments(selectedFaculty) : []
+  const subjects = selectedDepartment ? getMockSubjects(selectedDepartment) : []
+  const professors = selectedSubject ? getMockProfessors(selectedSubject) : []
 
   useEffect(() => {
-    loadFaculties()
-  }, [])
-
-  useEffect(() => {
-    if (selectedFaculty) {
-      loadDepartments(selectedFaculty)
-      setSelectedDepartment("")
-      setSelectedSubject("")
-      setSelectedProfessor("")
-    }
+    setSelectedDepartment("")
+    setSelectedSubject("")
+    setSelectedProfessor("")
   }, [selectedFaculty])
 
   useEffect(() => {
-    if (selectedDepartment) {
-      loadSubjects(selectedDepartment)
-      setSelectedSubject("")
-      setSelectedProfessor("")
-    }
+    setSelectedSubject("")
+    setSelectedProfessor("")
   }, [selectedDepartment])
 
   useEffect(() => {
-    if (selectedSubject) {
-      loadProfessors(selectedSubject)
-      setSelectedProfessor("")
-    }
+    setSelectedProfessor("")
   }, [selectedSubject])
-
-  const loadFaculties = async () => {
-    const { data } = await supabase.from("faculties").select("*").order("name")
-    if (data) setFaculties(data)
-  }
-
-  const loadDepartments = async (facultyId: string) => {
-    const { data } = await supabase.from("departments").select("*").eq("faculty_id", facultyId).order("name")
-    if (data) setDepartments(data)
-  }
-
-  const loadSubjects = async (departmentId: string) => {
-    const { data } = await supabase.from("subjects").select("*").eq("department_id", departmentId).order("name")
-    if (data) setSubjects(data)
-  }
-
-  const loadProfessors = async (subjectId: string) => {
-    const { data } = await supabase.from("professors").select("*").eq("subject_id", subjectId).order("name")
-    if (data) setProfessors(data)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError(null)
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("ログインが必要です")
-
-      const { error: insertError } = await supabase.from("past_exams").insert({
-        professor_id: selectedProfessor,
-        user_id: user.id,
-        title,
-        content,
-        year: year ? Number.parseInt(year) : null,
-        semester: semester || null,
-      })
-
-      if (insertError) throw insertError
-
+    setTimeout(() => {
+      alert("デモ版のため、実際の投稿は行われません。過去問が投稿されました！")
       router.push("/home")
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "投稿に失敗しました")
-    } finally {
-      setIsLoading(false)
-    }
+    }, 500)
   }
 
   return (
@@ -251,6 +192,21 @@ export default function SharePage() {
                   </div>
 
                   <div className="grid gap-2">
+                    <Label htmlFor="examType">試験の種類（任意）</Label>
+                    <Select value={examType} onValueChange={setExamType}>
+                      <SelectTrigger id="examType">
+                        <SelectValue placeholder="選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="中間試験">中間試験</SelectItem>
+                        <SelectItem value="期末試験">期末試験</SelectItem>
+                        <SelectItem value="小テスト">小テスト</SelectItem>
+                        <SelectItem value="レポート">レポート</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
                     <Label htmlFor="content">問題内容</Label>
                     <Textarea
                       id="content"
@@ -261,8 +217,6 @@ export default function SharePage() {
                       rows={10}
                     />
                   </div>
-
-                  {error && <p className="text-sm text-destructive">{error}</p>}
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "投稿中..." : "投稿する"}

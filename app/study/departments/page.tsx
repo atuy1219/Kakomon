@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { getMockDepartments, getMockFacultyById } from "@/lib/mock-data"
+import { redirect } from "next/navigation"
 
 export default async function DepartmentsPage({
   searchParams,
@@ -11,24 +11,13 @@ export default async function DepartmentsPage({
   searchParams: Promise<{ faculty: string }>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
 
   if (!params.faculty) {
     redirect("/study/faculties")
   }
 
-  const { data: faculty } = await supabase.from("faculties").select("*").eq("id", params.faculty).single()
-
-  const { data: departments } = await supabase
-    .from("departments")
-    .select("*")
-    .eq("faculty_id", params.faculty)
-    .order("name")
+  const faculty = getMockFacultyById(params.faculty)
+  const departments = getMockDepartments(params.faculty)
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -49,7 +38,7 @@ export default async function DepartmentsPage({
 
       <main className="container px-4 py-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {departments?.map((department) => (
+          {departments.map((department) => (
             <Card key={department.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle>{department.name}</CardTitle>

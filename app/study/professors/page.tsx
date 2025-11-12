@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { getMockProfessors, getMockSubjectById } from "@/lib/mock-data"
+import { redirect } from "next/navigation"
 
 export default async function ProfessorsPage({
   searchParams,
@@ -11,28 +11,13 @@ export default async function ProfessorsPage({
   searchParams: Promise<{ subject: string }>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
 
   if (!params.subject) {
     redirect("/study/faculties")
   }
 
-  const { data: subject } = await supabase
-    .from("subjects")
-    .select("*, departments(*, faculties(*))")
-    .eq("id", params.subject)
-    .single()
-
-  const { data: professors } = await supabase
-    .from("professors")
-    .select("*")
-    .eq("subject_id", params.subject)
-    .order("name")
+  const subject = getMockSubjectById(params.subject)
+  const professors = getMockProfessors(params.subject)
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -46,16 +31,14 @@ export default async function ProfessorsPage({
           </Button>
           <div>
             <h1 className="text-xl font-bold">教授を選択</h1>
-            <p className="text-sm text-muted-foreground">
-              {subject?.departments?.faculties?.name} / {subject?.departments?.name} / {subject?.name}
-            </p>
+            <p className="text-sm text-muted-foreground">{subject?.name}</p>
           </div>
         </div>
       </header>
 
       <main className="container px-4 py-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {professors?.map((professor) => (
+          {professors.map((professor) => (
             <Card key={professor.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle>{professor.name}</CardTitle>

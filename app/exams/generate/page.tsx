@@ -1,68 +1,39 @@
 "use client"
 
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronLeft, Sparkles, AlertCircle } from "lucide-react"
-
-type PastExam = {
-  id: string
-  title: string
-  content: string
-  year: number | null
-  semester: string | null
-}
+import { getMockExams } from "@/lib/mock-data"
 
 export default function GenerateExamPage() {
   const searchParams = useSearchParams()
   const professorId = searchParams.get("professor")
 
-  const [exams, setExams] = useState<PastExam[]>([])
+  const [exams, setExams] = useState<
+    Array<{ id: string; title: string; content: string; year: number | null; semester: string | null }>
+  >([])
   const [selectedExam, setSelectedExam] = useState("")
   const [generatedContent, setGeneratedContent] = useState("")
   const [hasApiKey, setHasApiKey] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
-    checkApiKey()
+    const storedKey = localStorage.getItem("openai_api_key") || ""
+    setHasApiKey(!!storedKey)
+
     if (professorId) {
-      loadExams(professorId)
+      const mockExams = getMockExams(professorId)
+      setExams(mockExams)
     }
   }, [professorId])
-
-  const checkApiKey = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase.from("user_api_keys").select("id").eq("user_id", user.id).single()
-
-      setHasApiKey(!!data)
-    } catch (error) {
-      setHasApiKey(false)
-    }
-  }
-
-  const loadExams = async (profId: string) => {
-    const { data } = await supabase
-      .from("past_exams")
-      .select("id, title, content, year, semester")
-      .eq("professor_id", profId)
-      .order("created_at", { ascending: false })
-
-    if (data) setExams(data)
-  }
 
   const handleGenerate = async () => {
     if (!selectedExam) {
@@ -78,10 +49,15 @@ export default function GenerateExamPage() {
       const exam = exams.find((e) => e.id === selectedExam)
       if (!exam) throw new Error("過去問が見つかりません")
 
+      const apiKey = localStorage.getItem("openai_api_key")
+      if (!apiKey) {
+        throw new Error("APIキーが設定されていません")
+      }
+
       const response = await fetch("/api/generate-similar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examContent: exam.content }),
+        body: JSON.stringify({ examContent: exam.content, apiKey }),
       })
 
       if (!response.ok) {
@@ -90,7 +66,7 @@ export default function GenerateExamPage() {
       }
 
       const data = await response.json()
-      setGeneratedContent(data.generatedContent)
+      setGeneratedContent(data.content)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "類題の生成に失敗しました")
     } finally {
@@ -153,18 +129,21 @@ export default function GenerateExamPage() {
               <CardDescription>類題を生成したい過去問を選択してください</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Select value={selectedExam} onValueChange={setSelectedExam} disabled={!hasApiKey}>
-                <SelectTrigger>
-                  <SelectValue placeholder="過去問を選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {exams.map((exam) => (
-                    <SelectItem key={exam.id} value={exam.id}>
-                      {exam.title} {exam.year && `(${exam.year}年)`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="exam">過去問</Label>
+                <Select value={selectedExam} onValueChange={setSelectedExam} disabled={!hasApiKey}>
+                  <SelectTrigger id="exam">
+                    <SelectValue placeholder="過去問を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exams.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.title} {exam.year && `(${exam.year}年)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {selectedExam && (
                 <div className="p-4 bg-muted rounded-lg">

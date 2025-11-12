@@ -1,30 +1,14 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, User, Mail, Calendar, FileText, MessageSquare, LogOut } from "lucide-react"
+import { ChevronLeft, User, Mail, Calendar, FileText, MessageSquare } from "lucide-react"
+import { mockUser, mockExams, mockQuestions } from "@/lib/mock-data"
 
-export default async function AccountPage() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
-
-  const { count: examsCount } = await supabase
-    .from("past_exams")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", data.user.id)
-
-  const { count: questionsCount } = await supabase
-    .from("questions")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", data.user.id)
+export default function AccountPage() {
+  const examsCount = mockExams.filter((e) => e.user_id === mockUser.id).length
+  const questionsCount = mockQuestions.filter((q) => q.user_id === mockUser.id).length
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -49,10 +33,10 @@ export default async function AccountPage() {
                   <User className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">{profile?.display_name || "ユーザー"}</CardTitle>
+                  <CardTitle className="text-2xl">{mockUser.display_name}</CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
                     <Mail className="h-4 w-4" />
-                    {profile?.email}
+                    {mockUser.email}
                   </CardDescription>
                 </div>
               </div>
@@ -61,21 +45,21 @@ export default async function AccountPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  登録日: {new Date(profile?.created_at || "").toLocaleDateString("ja-JP")}
+                  登録日: {new Date(mockUser.created_at || "").toLocaleDateString("ja-JP")}
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <FileText className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-2xl font-bold">{examsCount || 0}</p>
+                      <p className="text-2xl font-bold">{examsCount}</p>
                       <p className="text-xs text-muted-foreground">投稿した過去問</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <MessageSquare className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-2xl font-bold">{questionsCount || 0}</p>
+                      <p className="text-2xl font-bold">{questionsCount}</p>
                       <p className="text-xs text-muted-foreground">投稿した質問</p>
                     </div>
                   </div>
@@ -96,16 +80,9 @@ export default async function AccountPage() {
                   設定
                 </Link>
               </Button>
-              <form action="/api/auth/logout" method="POST">
-                <Button
-                  type="submit"
-                  variant="outline"
-                  className="w-full justify-start text-destructive hover:text-destructive bg-transparent"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  ログアウト
-                </Button>
-              </form>
+              <Badge variant="secondary" className="w-full justify-center py-2">
+                デモモード（認証なし）
+              </Badge>
             </CardContent>
           </Card>
         </div>

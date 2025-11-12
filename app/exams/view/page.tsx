@@ -1,10 +1,10 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar, User } from "lucide-react"
+import { ChevronLeft, Calendar } from "lucide-react"
+import { getMockProfessorById, getMockExams } from "@/lib/mock-data"
+import { redirect } from "next/navigation"
 
 export default async function ViewExamsPage({
   searchParams,
@@ -12,28 +12,13 @@ export default async function ViewExamsPage({
   searchParams: Promise<{ professor: string }>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
 
   if (!params.professor) {
     redirect("/study/faculties")
   }
 
-  const { data: professor } = await supabase
-    .from("professors")
-    .select("*, subjects(*, departments(*, faculties(*)))")
-    .eq("id", params.professor)
-    .single()
-
-  const { data: exams } = await supabase
-    .from("past_exams")
-    .select("*, profiles(display_name)")
-    .eq("professor_id", params.professor)
-    .order("created_at", { ascending: false })
+  const professor = getMockProfessorById(params.professor)
+  const exams = getMockExams(params.professor)
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -69,10 +54,7 @@ export default async function ViewExamsPage({
                           </span>
                         )}
                         {exam.semester && <Badge variant="secondary">{exam.semester}</Badge>}
-                        <span className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {exam.profiles?.display_name || "匿名"}
-                        </span>
+                        {exam.exam_type && <Badge variant="outline">{exam.exam_type}</Badge>}
                       </CardDescription>
                     </div>
                   </div>

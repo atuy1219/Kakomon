@@ -2,87 +2,27 @@
 
 import type React from "react"
 
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronLeft, Save, Key, AlertCircle, CheckCircle } from "lucide-react"
+import { mockUser } from "@/lib/mock-data"
 
 export default function SettingsPage() {
-  const [displayName, setDisplayName] = useState("")
+  const [displayName, setDisplayName] = useState(mockUser.display_name)
   const [apiKey, setApiKey] = useState("")
-  const [provider, setProvider] = useState("openai")
-  const [hasExistingKey, setHasExistingKey] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
-    loadUserData()
+    const storedKey = localStorage.getItem("openai_api_key") || ""
+    setApiKey(storedKey)
   }, [])
-
-  const loadUserData = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-
-      if (profile) {
-        setDisplayName(profile.display_name || "")
-      }
-
-      const { data: apiKeyData } = await supabase
-        .from("user_api_keys")
-        .select("provider")
-        .eq("user_id", user.id)
-        .single()
-
-      if (apiKeyData) {
-        setHasExistingKey(true)
-        setProvider(apiKeyData.provider)
-      }
-    } catch (error) {
-      console.error("Failed to load user data:", error)
-    }
-  }
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("ログインが必要です")
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ display_name: displayName })
-        .eq("id", user.id)
-
-      if (updateError) throw updateError
-
-      setSuccess("プロフィールを更新しました")
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "更新に失敗しました")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleUpdateApiKey = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,33 +31,12 @@ export default function SettingsPage() {
     setSuccess(null)
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("ログインが必要です")
-
       if (!apiKey.trim()) {
         throw new Error("APIキーを入力してください")
       }
 
-      if (hasExistingKey) {
-        const { error: updateError } = await supabase
-          .from("user_api_keys")
-          .update({ api_key: apiKey, provider, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id)
-
-        if (updateError) throw updateError
-      } else {
-        const { error: insertError } = await supabase
-          .from("user_api_keys")
-          .insert({ user_id: user.id, api_key: apiKey, provider })
-
-        if (insertError) throw insertError
-        setHasExistingKey(true)
-      }
-
+      localStorage.setItem("openai_api_key", apiKey)
       setSuccess("APIキーを保存しました")
-      setApiKey("")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "保存に失敗しました")
     } finally {
@@ -158,26 +77,22 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>プロフィール設定</CardTitle>
-              <CardDescription>表示名を変更できます</CardDescription>
+              <CardDescription>デモモードでは変更できません</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="display-name">表示名</Label>
                   <Input
                     id="display-name"
                     type="text"
-                    placeholder="山田太郎"
-                    required
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
+                    disabled
                   />
+                  <p className="text-xs text-muted-foreground">デモ版では変更できません</p>
                 </div>
-                <Button type="submit" disabled={isLoading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isLoading ? "保存中..." : "保存"}
-                </Button>
-              </form>
+              </div>
             </CardContent>
           </Card>
 
@@ -194,29 +109,16 @@ export default function SettingsPage() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-sm">
-                    APIキーは暗号化されてデータベースに保存されます。
-                    {hasExistingKey && " 既にAPIキーが登録されています。"}
+                    APIキーはブラウザのローカルストレージに保存されます（デモ版）
                   </AlertDescription>
                 </Alert>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="provider">プロバイダー</Label>
-                  <Select value={provider} onValueChange={setProvider}>
-                    <SelectTrigger id="provider">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="api-key">APIキー</Label>
                   <Input
                     id="api-key"
                     type="password"
-                    placeholder={hasExistingKey ? "新しいAPIキーを入力（変更する場合）" : "sk-..."}
+                    placeholder="sk-..."
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                   />
@@ -236,7 +138,7 @@ export default function SettingsPage() {
 
                 <Button type="submit" disabled={isLoading}>
                   <Save className="h-4 w-4 mr-2" />
-                  {isLoading ? "保存中..." : hasExistingKey ? "APIキーを更新" : "APIキーを保存"}
+                  {isLoading ? "保存中..." : "APIキーを保存"}
                 </Button>
               </form>
             </CardContent>

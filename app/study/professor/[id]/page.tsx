@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { ChevronLeft, FileText, Sparkles, MessageSquare } from "lucide-react"
+import { getMockProfessorById, getMockExams } from "@/lib/mock-data"
+import { redirect } from "next/navigation"
 
 export default async function ProfessorDetailPage({
   params,
@@ -11,27 +11,13 @@ export default async function ProfessorDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
-
-  const { data: professor } = await supabase
-    .from("professors")
-    .select("*, subjects(*, departments(*, faculties(*)))")
-    .eq("id", id)
-    .single()
+  const professor = getMockProfessorById(id)
 
   if (!professor) {
     redirect("/study/faculties")
   }
 
-  const { data: examsCount } = await supabase
-    .from("past_exams")
-    .select("id", { count: "exact", head: true })
-    .eq("professor_id", id)
+  const exams = getMockExams(id)
 
   return (
     <div className="min-h-svh bg-gradient-to-br from-background to-muted">
@@ -45,9 +31,6 @@ export default async function ProfessorDetailPage({
           </Button>
           <div>
             <h1 className="text-xl font-bold">{professor.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {professor.subjects?.departments?.faculties?.name} / {professor.subjects?.name}
-            </p>
           </div>
         </div>
       </header>
@@ -55,7 +38,7 @@ export default async function ProfessorDetailPage({
       <main className="container px-4 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-2">{professor.name}の過去問</h2>
-          <p className="text-muted-foreground">{examsCount?.count || 0}件の過去問が登録されています</p>
+          <p className="text-muted-foreground">{exams.length}件の過去問が登録されています</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3 max-w-6xl">
