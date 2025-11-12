@@ -1,8 +1,10 @@
-import { updateSession } from "@/lib/supabase/middleware"
+import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+export async function middleware(_request: NextRequest) {
+  // Supabase のセッション更新ロジックは削除済み。
+  // 必要であればここにアプリ固有の認証ミドルウェアを追加してください。
+  return NextResponse.next()
 }
 
 export const config = {

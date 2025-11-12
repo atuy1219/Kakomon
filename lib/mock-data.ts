@@ -4,6 +4,7 @@ export const mockUser = {
   id: "mock-user-1",
   email: "demo@example.com",
   display_name: "デモユーザー",
+  created_at: new Date().toISOString(),
 }
 
 export const mockFaculties = [

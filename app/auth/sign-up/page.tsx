@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,12 +20,18 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
-    if (password !== repeatPassword) {
-      setError("パスワードが一致しません")
+    // バリデーション
+    if (!displayName || !email || !password || !repeatPassword) {
+      setError("すべての項目を入力してください")
+      setIsLoading(false)
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("有効なメールアドレスを入力してください")
       setIsLoading(false)
       return
     }
@@ -38,24 +42,19 @@ export default function SignUpPage() {
       return
     }
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/home`,
-          data: {
-            display_name: displayName,
-          },
-        },
-      })
-      if (error) throw error
-      router.push("/auth/sign-up-success")
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "登録に失敗しました")
-    } finally {
+    if (password !== repeatPassword) {
+      setError("パスワードが一致しません")
       setIsLoading(false)
+      return
     }
+
+    // ここで実際のサインアップAPIを呼び出します
+    // 例: const response = await fetch('/api/auth/sign-up', { ... })
+    
+    // デモ用：2秒待機
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    router.push("/auth/sign-up-success")
   }
 
   return (
