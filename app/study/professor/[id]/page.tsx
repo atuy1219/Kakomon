@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { ChevronLeft, FileText, Sparkles, MessageSquare } from "lucide-react"
-import { getMockProfessorById, getMockExams } from "@/lib/mock-data"
+import { ChevronLeft } from "lucide-react"
+import { getMockProfessorById, getMockSubjectById, getMockDepartmentById } from "@/lib/mock-data"
 import { redirect } from "next/navigation"
 
+// PDF 1枚目 (ホーム) のボタンレイアウトを流用
 export default async function ProfessorDetailPage({
   params,
 }: {
@@ -17,87 +17,63 @@ export default async function ProfessorDetailPage({
     redirect("/study/faculties")
   }
 
-  const exams = getMockExams(id)
+  const subject = getMockSubjectById(professor.subject_id)
+  const department = getMockDepartmentById(subject?.department_id || "")
 
   return (
-    <div className="min-h-svh bg-gradient-to-br from-background to-muted">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center gap-4 px-4">
-          <Button variant="ghost" size="icon" asChild>
+    <div className="flex flex-col min-h-svh bg-background">
+      
+      {/* PDFの青いヘッダー */}
+      <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-10">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Button variant="ghost" size="icon" asChild className="hover:bg-primary/80">
             <Link href={`/study/professors?subject=${professor.subject_id}`}>
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-6 w-6" />
               <span className="sr-only">戻る</span>
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">{professor.name}</h1>
+          <div className="text-center absolute left-1/2 -translate-x-1/2">
+            <h1 className="text-xl font-bold">
+              {professor.name}
+            </h1>
+            <p className="text-sm opacity-90">{subject?.name}</p>
           </div>
+          <div></div>
         </div>
       </header>
 
-      <main className="container px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">{professor.name}の過去問</h2>
-          <p className="text-muted-foreground">{exams.length}件の過去問が登録されています</p>
-        </div>
+      {/* メインコンテンツ (ホーム画面のボタンレイアウト流用) */}
+      <main className="container mx-auto flex flex-1 flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-12 w-full max-w-xs">
+          
+          {/* 閲覧ボタン (PDFのプライマリボタン) */}
+          <Button
+            asChild
+            className="w-full"
+            size="default" // h-14
+          >
+            <Link href={`/exams/view?professor=${id}`}>過去問を閲覧</Link>
+          </Button>
 
-        <div className="grid gap-6 md:grid-cols-3 max-w-6xl">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle>過去問を閲覧</CardTitle>
-                  <CardDescription>登録された過去問を見る</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href={`/exams/view?professor=${id}`}>閲覧する</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {/* 類題作成ボタン (PDFのセカンダリボタン) */}
+          <Button
+            asChild
+            className="w-full bg-muted text-muted-foreground hover:bg-muted/90"
+            size="default" // h-14
+            variant="secondary"
+          >
+            <Link href={`/exams/generate?professor=${id}`}>類題を作成</Link>
+          </Button>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle>類題を作成</CardTitle>
-                  <CardDescription>AIで類似問題を生成</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full bg-transparent" variant="outline">
-                <Link href={`/exams/generate?professor=${id}`}>作成する</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <MessageSquare className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle>質問を作成</CardTitle>
-                  <CardDescription>過去問について質問</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full bg-transparent" variant="outline">
-                <Link href={`/questions/create?professor=${id}`}>質問する</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {/* 質問するボタン (PDFのセカンダリボタン) */}
+          <Button
+            asChild
+            className="w-full bg-muted text-muted-foreground hover:bg-muted/90"
+            size="default" // h-14
+            variant="secondary"
+          >
+            <Link href={`/questions/create?professor=${id}`}>質問する</Link>
+          </Button>
         </div>
       </main>
     </div>

@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ChevronLeft, Calendar } from "lucide-react"
-import { getMockProfessorById, getMockExams } from "@/lib/mock-data"
+import { ChevronLeft, Plus } from "lucide-react"
+import { getMockProfessorById, getMockExams, getMockSubjectById } from "@/lib/mock-data"
 import { redirect } from "next/navigation"
 
+// PDF 5枚目 (閲覧画面・年度選択) のデザインを適用
 export default async function ViewExamsPage({
   searchParams,
 }: {
@@ -18,69 +17,77 @@ export default async function ViewExamsPage({
   }
 
   const professor = getMockProfessorById(params.professor)
+  const subject = getMockSubjectById(professor?.subject_id || "")
   const exams = getMockExams(params.professor)
 
   return (
-    <div className="min-h-svh bg-gradient-to-br from-background to-muted">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center gap-4 px-4">
-          <Button variant="ghost" size="icon" asChild>
+    <div className="flex flex-col min-h-svh bg-background">
+      
+      {/* PDFの青いヘッダー */}
+      <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-10">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Button variant="ghost" size="icon" asChild className="hover:bg-primary/80">
             <Link href={`/study/professor/${params.professor}`}>
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-6 w-6" />
               <span className="sr-only">戻る</span>
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">過去問一覧</h1>
-            <p className="text-sm text-muted-foreground">{professor?.name}</p>
+          <div className="text-center absolute left-1/2 -translate-x-1/2">
+            <h1 className="text-xl font-bold">
+              {subject?.name}
+            </h1>
+            <p className="text-sm opacity-90">{professor?.name}</p>
           </div>
+          {/* PDF 5枚目のデザインにはないが、機能として「過去問追加」があってもよいため、共有へのリンクを残す */}
+          <Button variant="ghost" size="icon" asChild className="hover:bg-primary/80">
+            <Link href={`/share`}>
+              <Plus className="h-6 w-6" />
+              <span className="sr-only">過去問を共有</span>
+            </Link>
+          </Button>
         </div>
       </header>
 
-      <main className="container px-4 py-8">
-        {exams && exams.length > 0 ? (
-          <div className="grid gap-4 max-w-4xl mx-auto">
-            {exams.map((exam) => (
-              <Card key={exam.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{exam.title}</CardTitle>
-                      <CardDescription className="flex flex-wrap items-center gap-3">
-                        {exam.year && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {exam.year}年
-                          </span>
-                        )}
-                        {exam.semester && <Badge variant="secondary">{exam.semester}</Badge>}
-                        {exam.exam_type && <Badge variant="outline">{exam.exam_type}</Badge>}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3 whitespace-pre-wrap">{exam.content}</p>
-                  <Button asChild variant="outline" className="w-full bg-transparent">
-                    <Link href={`/exams/${exam.id}`}>詳細を見る</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+      {/* メインコンテンツ */}
+      <main className="container mx-auto flex flex-1 flex-col p-4 py-8">
+        <div className="w-full max-w-md mx-auto space-y-6">
+          
+          <h2 className="text-xl font-semibold text-center text-foreground">
+            年度を選んでください
+          </h2>
+
+          <div className="flex flex-col gap-4">
+            {exams && exams.length > 0 ? (
+              exams.map((exam) => (
+                <Button
+                  key={exam.id}
+                  asChild
+                  variant="secondary" // PDFのグレーボタン (#E0E0E0)
+                  className="w-full justify-start"
+                  size="default" // h-14
+                >
+                  <Link href={`/exams/${exam.id}`}>
+                    {exam.title} {exam.year && `(${exam.year}年)`}
+                  </Link>
+                </Button>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground">
+                この教授の過去問はまだ投稿されていません。
+              </p>
+            )}
           </div>
-        ) : (
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>過去問がありません</CardTitle>
-              <CardDescription>この教授の過去問はまだ投稿されていません</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/share">最初の過去問を投稿する</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          
+          {/* PDF 5枚目の「類題作成」ボタン */}
+          <Button
+            asChild
+            className="w-full max-w-xs mx-auto flex"
+            size="default"
+          >
+            <Link href={`/exams/generate?professor=${params.professor}`}>類題作成</Link>
+          </Button>
+
+        </div>
       </main>
     </div>
   )

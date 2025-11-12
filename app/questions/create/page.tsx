@@ -1,9 +1,7 @@
 "use client"
 
 import type React from "react"
-
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,13 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronLeft, MessageSquare } from "lucide-react"
-import { getMockExams, getMockExamById } from "@/lib/mock-data"
+import { ChevronLeft } from "lucide-react"
+import { getMockExams, getMockExamById, getMockProfessorById } from "@/lib/mock-data"
 
+// PDFのデザイン言語 (フォーム) を適用
 export default function CreateQuestionPage() {
   const searchParams = useSearchParams()
   const professorId = searchParams.get("professor")
   const examId = searchParams.get("exam")
+  
+  const exam = getMockExamById(examId || "")
+  const professor = getMockProfessorById(professorId || exam?.professor_id || "")
 
   const [exams, setExams] = useState<Array<{ id: string; title: string; content: string; year: number | null }>>([])
   const [selectedExam, setSelectedExam] = useState(examId || "")
@@ -27,18 +29,21 @@ export default function CreateQuestionPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (professorId) {
+    // examIdが指定されていない場合 (教授ページから来た場合) のみ、
+    // その教授の試験一覧を読み込む
+    if (professorId && !examId) {
       const mockExams = getMockExams(professorId)
       setExams(mockExams)
     }
-  }, [professorId])
+  }, [professorId, examId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
+    // デモロジック
     setTimeout(() => {
-      alert("デモ版のため、実際の投稿は行われません。質問が投稿されました！")
+      alert("デモ：質問を投稿しました（モック）")
       if (selectedExam) {
         router.push(`/exams/${selectedExam}`)
       } else {
@@ -47,110 +52,122 @@ export default function CreateQuestionPage() {
     }, 500)
   }
 
-  const displayExam = selectedExam ? getMockExamById(selectedExam) : null
+  const displayExam = getMockExamById(selectedExam)
 
   if (!professorId && !examId) {
+    // ... エラー表示 (変更なし) ...
     return (
-      <div className="min-h-svh bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>エラー</CardTitle>
-            <CardDescription>教授または過去問が選択されていません</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/home">ホームに戻る</Link>
+      <div className="flex flex-col min-h-svh bg-background">
+         <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-10">
+          <div className="container mx-auto flex h-16 items-center justify-between px-4">
+            <Button variant="ghost" size="icon" asChild className="hover:bg-primary/80">
+              <Link href="/home">
+                <ChevronLeft className="h-6 w-6" />
+                <span className="sr-only">戻る</span>
+              </Link>
             </Button>
-          </CardContent>
-        </Card>
+            <h1 className="text-xl font-bold absolute left-1/2 -translate-x-1/2">
+              エラー
+            </h1>
+            <div></div>
+          </div>
+        </header>
+        <main className="container mx-auto flex flex-1 flex-col items-center justify-center p-4">
+          <p>教授または過去問が選択されていません。</p>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-svh bg-gradient-to-br from-background to-muted">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center gap-4 px-4">
-          <Button variant="ghost" size="icon" asChild>
+    <div className="flex flex-col min-h-svh bg-background">
+      
+      {/* PDFの青いヘッダー */}
+      <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-10">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Button variant="ghost" size="icon" asChild className="hover:bg-primary/80">
             <Link href={examId ? `/exams/${examId}` : `/study/professor/${professorId}`}>
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-6 w-6" />
               <span className="sr-only">戻る</span>
             </Link>
           </Button>
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-bold">質問を作成</h1>
-          </div>
+          <h1 className="text-xl font-bold absolute left-1/2 -translate-x-1/2">
+            質問する
+          </h1>
+          <div></div>
         </div>
       </header>
 
-      <main className="container px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>質問を投稿</CardTitle>
-            <CardDescription>過去問について質問して、みんなで学び合いましょう</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {!examId && professorId && (
-                <div className="grid gap-2">
-                  <Label htmlFor="exam">過去問を選択</Label>
-                  <Select value={selectedExam} onValueChange={setSelectedExam}>
-                    <SelectTrigger id="exam">
-                      <SelectValue placeholder="質問したい過去問を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {exams.map((exam) => (
-                        <SelectItem key={exam.id} value={exam.id}>
-                          {exam.title} {exam.year && `(${exam.year}年)`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+      {/* メインコンテンツ */}
+      <main className="container mx-auto flex flex-1 flex-col p-4 py-8">
+        <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto space-y-8">
+          
+          <div className="space-y-6">
+            
+            {/* 教授ページから来た場合 (examId がない) のみ、過去問を選択 */}
+            {!examId && professorId && (
+              <div className="grid gap-2">
+                <Label htmlFor="exam" className="text-base font-semibold">質問対象の過去問</Label>
+                <Select value={selectedExam} onValueChange={setSelectedExam}>
+                  <SelectTrigger id="exam" className="h-12 rounded-2xl" size="lg">
+                    <SelectValue placeholder="過去問を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exams.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.title} {exam.year && `(${exam.year}年)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* 過去問ページから来た場合 (examId がある) は、対象を表示 */}
+            {displayExam && (
+              <div className="grid gap-2">
+                <Label className="text-base font-semibold">質問対象</Label>
+                <div className="p-4 bg-muted rounded-2xl border">
+                  <p className="font-semibold">{displayExam.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {displayExam.content}
+                  </p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {selectedExam && (
-                <>
-                  {displayExam && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-semibold mb-2">選択された過去問</h4>
-                      <p className="text-sm font-medium mb-1">{displayExam.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-3">{displayExam.content}</p>
-                    </div>
-                  )}
+            {/* 質問内容の入力フォーム */}
+            <div className="grid gap-2">
+              <Label htmlFor="title" className="text-base font-semibold">質問のタイトル</Label>
+              <Input
+                id="title"
+                placeholder="例: この問題の解き方が..."
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-12 rounded-2xl"
+              />
+            </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">質問のタイトル</Label>
-                    <Input
-                      id="title"
-                      placeholder="例: この問題の解き方がわかりません"
-                      required
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content" className="text-base font-semibold">質問内容</Label>
+              <Textarea
+                id="content"
+                placeholder="具体的な質問内容を入力してください"
+                required
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={8}
+                className="rounded-2xl"
+              />
+            </div>
+          </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="content">質問内容</Label>
-                    <Textarea
-                      id="content"
-                      placeholder="具体的な質問内容を入力してください"
-                      required
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      rows={8}
-                    />
-                  </div>
+          <Button type="submit" className="w-full max-w-xs mx-auto flex" disabled={isLoading}>
+            {isLoading ? "投稿中..." : "投稿する"}
+          </Button>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "投稿中..." : "質問を投稿"}
-                  </Button>
-                </>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+        </form>
       </main>
     </div>
   )
