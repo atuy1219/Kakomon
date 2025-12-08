@@ -116,6 +116,18 @@ export const mockExams = [
     user_id: "mock-user-1",
     created_at: new Date("2024-07-15").toISOString(),
   },
+   {
+    id: "4",
+    professor_id: "5",
+    title: "2024年度 中間試験",
+    year: 2024,
+    semester: "前期",
+    exam_type: "中間試験",
+    content:
+      "/linear_algebra_2024_first_midterm.tex.pdf",
+    user_id: "mock-user-1",
+    created_at: new Date("2024-07-10").toISOString(),
+  },
 ]
 
 export const mockQuestions = [
