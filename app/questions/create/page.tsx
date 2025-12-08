@@ -8,12 +8,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
  
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { ChevronLeft } from "lucide-react"
 import { getMockExams, getMockExamById, getMockProfessorById } from "@/lib/mock-data"
 
 // PDFのデザイン言語 (フォーム) を適用
-export default function CreateQuestionPage() {
+function CreateQuestionContent() {
   const searchParams = useSearchParams()
   const professorId = searchParams.get("professor")
   const examId = searchParams.get("exam")
@@ -193,5 +193,19 @@ export default function CreateQuestionPage() {
         </form>
       </main>
     </div>
+  )
+}
+
+export default function CreateQuestionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col min-h-svh bg-background items-center justify-center">
+          <p className="text-foreground">読み込み中...</p>
+        </div>
+      }
+    >
+      <CreateQuestionContent />
+    </Suspense>
   )
 }
