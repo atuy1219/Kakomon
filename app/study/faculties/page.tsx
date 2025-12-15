@@ -144,7 +144,7 @@ export default function FacultiesPage() {
               className={`${fixedWidthClass} no-underline`}
               size="default"
             >
-              閲覧する
+              次へ
             </Button>
           </div>
         </div>
