@@ -1,3 +1,7 @@
+
+
+
+
 "use client"
 
 import { Suspense } from "react"
@@ -26,7 +30,7 @@ function ViewExamsContent() {
     <div className="flex flex-col min-h-svh bg-background">
       
       {/* PDFの青いヘッダー */}
-      <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-10">
+      <header className="bg-background text-foreground shadow-md sticky top-0 z-10">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <Button variant="ghost" size="icon" href={`/study/professor/${professor}`} className="hover:bg-primary/80">
             <ChevronLeft className="h-6 w-6" />
